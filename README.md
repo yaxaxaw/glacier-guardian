@@ -2,7 +2,8 @@
 
 **NASA Space Apps Challenge 2026 · "Be An Earth System Trend Detective"**
 
-**Live demo: https://yaxaxaw.github.io/glacier-guardian/**
+**Full site with accounts: https://glacierguardian.pythonanywhere.com**  
+**Static mirror (no accounts): https://yaxaxaw.github.io/glacier-guardian/**
 
 Pick a place in Kyrgyzstan's mountains, a climate variable and a season. Glacier Guardian builds a 1980–2025 time series from NASA MERRA-2 data, measures how fast it is changing and tests whether the trend is real or could be chance. Around this Trend Detective: a 3D map of all 7,447 glaciers of Kyrgyzstan, their ice loss and projections to 2100, and personal accounts for sending glacier photos and locations.
 
@@ -12,12 +13,12 @@ All data comes from NASA Earthdata. The interface is in Russian and English (RU 
 
 ## For judges: try it in 2 minutes
 
-1. Open the **[live demo](https://yaxaxaw.github.io/glacier-guardian/)** (or run it locally, see below) and switch to **EN** in the top-right corner.
+1. Open the **[full site](https://glacierguardian.pythonanywhere.com)** (or run it locally, see below) and switch to **EN** in the top-right corner.
 2. Click **"Trend detective"** in the menu, then **"▶ Demo 1"**. It sets *Ala-Archa · Air temperature · Spring* and walks you through the result step by step.
 3. Read the **Verdict**: the rate of change per decade (Sen's slope) and whether it is significant (Mann–Kendall test, p < 0.05). Below it, the **region comparison** runs the same test for all 7 regions.
 4. Try **"▶ Demo 2"**: winter snow cover grows in the inner Tien Shan but shrinks in the Alay. Same climate, opposite trends, both significant.
 5. Scroll back up to the **map** and click any glacier. The panel shows its ice loss and future; **"Trends in this area"** opens the detective for the nearest region.
-6. *(Local run only)* Click **"Sign in"**, create an account and send an observation with a photo in the **"Join"** section.
+6. Click **"Sign in"**, create an account and send an observation with a photo in the **"Join"** section.
 
 ---
 
