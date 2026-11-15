@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glacier Guardian Kyrgyzstan</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M2 28 13 8l6 10 3-4 8 14z%22 fill=%22%237fd8f0%22/%3E%3C/svg%3E">
+<meta name="description" content="Interactive 3D map of 7,447 Kyrgyz glaciers built on NASA data, with citizen science and community action.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+/* Direction: an expedition field-map. Night-blue mountains, one glacial-cyan accent for ice,
+   warm red only for loss. The map is the hero; every section below follows the path
+   SEE -> UNDERSTAND -> FUTURE -> HELP -> JOIN. */
+:root{
+  --bg:#0b1520; --bg2:#0f1d2b; --panel:#132434; --panel2:#182d40; --ink:#e8f1f7; --muted:#9db1c2; --line:#24394d;
+  --ice:#7fd8f0; --ice-deep:#2aa7cf; --loss:#e4573f; --gain:#5fa8e0; --warn:#e8b04b; --ok:#5cc7a0;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:linear-gradient(rgba(11,21,32,.72),rgba(11,21,32,.9)),url(assets/mountains.webp) center/cover fixed,var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
+a{color:var(--ice)}
+h1,h2,h3,h4{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;text-decoration:none}
+.btn:hover{border-color:var(--ice)}
+.btn.primary{background:var(--ice);color:#06202b;border-color:var(--ice)}
+.btn.primary:hover{background:#a4e6f6}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn[aria-pressed="true"]{background:var(--ice);color:#06202b;border-color:var(--ice)}
+.pill{display:inline-block;font:600 11px var(--body);letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill.loss{border-color:var(--loss);color:var(--loss)} .pill.gain{border-color:var(--gain);color:var(--gain)} .pill.unc{border-color:var(--warn);color:var(--warn)}
+
+/* header */
+header.top{position:sticky;top:0;z-index:50;background:rgba(11,21,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:18px;height:60px;max-width:none}
+.logo{display:flex;align-items:center;gap:10px;font:800 14px var(--display);letter-spacing:.03em;white-space:nowrap}
+.logo svg{flex:none}
+.journey{display:flex;flex:1;align-self:stretch;overflow-x:auto;scrollbar-width:none;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.journey a{flex:1;display:flex;align-items:center;justify-content:center;padding:0 14px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap;transition:color .15s,background .15s,box-shadow .15s}
+.journey a+a{border-left:1px solid var(--line)}
+.journey a:hover,.journey a:focus-visible{color:var(--ink);background:rgba(127,216,240,.06);box-shadow:inset 0 -2px 0 var(--ice)}
+.acct{flex:none}
+.acct .btn{padding:7px 16px;border-radius:999px}
+#auth form{display:grid;gap:12px;padding:18px}
+#auth .tabs{display:flex;gap:6px}
+.lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.lang button{border:0;background:none;color:var(--muted);padding:6px 10px;cursor:pointer;font-weight:600;font-size:13px}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* map stage */
+.stage{position:relative;overflow:hidden;height:calc(100vh - 60px);min-height:560px;max-height:900px;border-bottom:1px solid var(--line)}
+#map{position:absolute;inset:0}
+.overlay{position:absolute;z-index:5;pointer-events:none}
+.overlay>*{pointer-events:auto}
+.intro{left:20px;top:20px;max-width:430px;background:rgba(11,21,32,.86);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.intro h1{font-size:clamp(24px,2.6vw,34px);font-weight:800;line-height:1.05}
+.intro h1 em{font-style:normal;color:var(--ice)}
+.intro p{color:var(--muted);margin:10px 0 12px;font-size:15px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stats div{border-top:1px solid var(--line);padding-top:6px}
+.stats b{display:block;font:700 20px var(--display)}
+.stats b.loss{color:var(--loss)}
+.stats span{font-size:12px;color:var(--muted)}
+.controls{left:20px;bottom:24px;display:flex;flex-direction:column;gap:8px;background:rgba(11,21,32,.86);border:1px solid var(--line);border-radius:14px;padding:12px;max-width:430px}
+.controls .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.controls label{font-size:13px;color:var(--muted)}
+.controls input[type=range]{accent-color:var(--ice);width:130px}
+.search{position:relative}
+.search input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.search ul{position:absolute;bottom:100%;left:0;right:0;list-style:none;margin:0 0 4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:240px;overflow:auto;display:none}
+.search li{padding:6px 8px;border-radius:6px;cursor:pointer;font-size:14px}
+.search li:hover,.search li.on{background:var(--panel2)}
+.legend{right:20px;bottom:30px;background:rgba(11,21,32,.86);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--muted);width:230px}
+.legend .bar{height:10px;border-radius:5px;background:linear-gradient(90deg,#b2182b,#ef8a62 35%,#fddbc7 60%,#f2f2f2 70%,#67a9cf);margin:6px 0 2px}
+.legend .ticks{display:flex;justify-content:space-between;font-family:var(--mono)}
+.pickhint{left:50%;top:16px;transform:translateX(-50%);background:var(--ice);color:#06202b;font-weight:700;padding:8px 14px;border-radius:999px;display:none}
+
+/* glacier panel */
+.panel{position:absolute;top:0;right:0;bottom:0;width:min(470px,100%);background:var(--bg2);border-left:1px solid var(--line);z-index:10;overflow-y:auto;transform:translateX(100%);transition:transform .25s ease}
+.panel.open{transform:none}
+.panel .head{position:sticky;top:0;background:var(--bg2);padding:16px 18px 10px;border-bottom:1px solid var(--line);z-index:2}
+.panel .close{position:absolute;right:12px;top:12px}
+.panel h2{font-size:20px;font-weight:700;padding-right:40px}
+.panel .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.panel section{padding:14px 18px;border-bottom:1px solid var(--line)}
+.panel h3{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.07em;color:var(--ice);margin-bottom:10px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.kv div{font-size:13px;color:var(--muted)}
+.kv b{display:block;color:var(--ink);font:500 16px var(--mono);font-variant-numeric:tabular-nums}
+.big{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.big b{font:700 30px var(--display)}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.plain{background:var(--panel);border-radius:10px;padding:10px 12px;font-size:14px;margin-top:10px}
+.compare{position:relative;width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:#000;user-select:none;touch-action:none}
+.compare .layer{position:absolute;inset:0}
+.compare .layer.top{clip-path:inset(0 0 0 50%)}
+.compare .mosaic{position:absolute;display:grid;grid-template-columns:repeat(3,256px)}
+.compare .mosaic img{width:256px;height:256px;display:block}
+.compare .handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--ice);cursor:ew-resize}
+.compare .handle::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--ice);color:#06202b;font-weight:800;border-radius:999px;padding:2px 8px;font-size:13px}
+.compare .tag{position:absolute;top:8px;max-width:46%;font:600 11px var(--mono);background:rgba(0,0,0,.65);padding:3px 7px;border-radius:6px}
+.compare .tag.l{left:8px}.compare .tag.r{right:8px}
+.compare .pin{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid var(--ice);border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.demos{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.dnarr{background:var(--panel2);border:1px solid var(--ice);border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.dnarr b{color:var(--ice)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips .btn[disabled]{opacity:.35;cursor:not-allowed}
+.def{font-size:13px;color:var(--muted);margin:10px 0 0}
+.dres{grid-template-columns:1.6fr 1fr;margin-top:16px}
+.verdict{font:700 28px/1.15 var(--display);margin:8px 0 4px}
+.stt{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.stt td{padding:5px 0;border-top:1px solid var(--line)}.stt td+td{text-align:right;font-family:var(--mono)}
+.cmp{display:grid;grid-template-columns:minmax(120px,1.1fr) 3fr minmax(110px,auto);gap:6px 12px;align-items:center;font-size:14px;margin-top:12px}
+.cmp .bar{position:relative;height:16px}.cmp .bar i{position:absolute;top:2px;height:12px;border-radius:4px;background:var(--ice)}
+.cmp .bar i.ns{background:transparent;border:2px solid var(--ice)}.cmp .bar .zero{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--muted)}
+.cmp .sel{color:var(--ice);font-weight:700}
+@media (max-width:980px){.dres{grid-template-columns:1fr}}
+@media (max-width:640px){#detective .mchart .ax text{font-size:26px}#detective .mchart .ax .unit{font-size:24px}}
+.mchart{position:relative}.mchart svg{width:100%;height:auto;display:block;margin-top:8px}
+.mchart .ax text{font:500 12px var(--mono);fill:var(--muted)}.mchart .ax .unit{font-size:11px}
+.mchart .tip{position:absolute;transform:translateX(-50%);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font:500 12px var(--mono);white-space:nowrap;pointer-events:none}
+.yearbtns{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.cta{display:grid;gap:8px}
+
+/* sections */
+section.block{padding:72px 0;border-bottom:1px solid var(--line)}
+.kicker{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ice);margin-bottom:12px;display:flex;gap:10px;align-items:center}
+section.block h2{font-size:clamp(26px,3.4vw,42px);font-weight:700;max-width:22ch}
+.lead{color:var(--muted);font-size:18px;max-width:62ch;margin:14px 0 28px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.card p{color:var(--muted);font-size:15px;margin:0 0 10px}
+.card ul,.card ol{margin:0;padding-left:20px;font-size:15px}
+.card li{margin-bottom:5px}
+.card .src{font-size:12px;color:var(--muted);margin-top:10px;display:block}
+.card.accent{border-color:var(--ice-deep)}
+.card .tagline{font:600 11px var(--mono);color:var(--warn);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:block}
+.hist{display:flex;align-items:flex-end;gap:10px;height:170px;margin:10px 0 6px}
+.hist div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.hist i{display:block;width:100%;background:var(--loss);border-radius:6px 6px 0 0;min-height:2px}
+.hist span{font:500 12px var(--mono);color:var(--muted);text-align:center}
+.hist em{font:700 13px var(--mono);font-style:normal}
+.dots{display:grid;grid-template-columns:repeat(20,1fr);gap:4px;margin:12px 0}
+.dots i{aspect-ratio:1;border-radius:50%;background:var(--ice)}
+.dots i.gone{background:var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:none;color:var(--muted);padding:8px 12px;cursor:pointer;font-weight:600;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ice);color:#06202b}
+
+/* forms & lists */
+form.f{display:grid;gap:12px}
+.f label{display:grid;gap:5px;font-size:13px;color:var(--muted)}
+.f input,.f select,.f textarea{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;color:var(--ink)}
+.f .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.list{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:84px 1fr;gap:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.item.noimg{grid-template-columns:1fr}
+.item img{width:84px;height:84px;object-fit:cover;border-radius:8px}
+.item h4{font:600 15px var(--body)}
+.item .meta{font-size:12px;color:var(--muted)}
+.item .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.empty{color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:12px;padding:16px;text-align:center}
+.demo{font-size:13px;color:var(--warn);border:1px solid rgba(232,176,75,.4);background:rgba(232,176,75,.08);border-radius:10px;padding:10px 12px;margin-bottom:16px}
+.impact{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.impact div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.impact b{display:block;font:800 34px var(--display);color:var(--ice)}
+.impact span{font-size:13px;color:var(--muted)}
+dialog{background:var(--bg2);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:0;width:min(760px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog .dh{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+dialog .db{padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+dialog .db figure{margin:0}
+dialog .db figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+dialog .db img.photo{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+footer{padding:40px 0 70px;color:var(--muted);font-size:14px}
+footer .cols{display:grid;grid-template-columns:1.4fr 1fr;gap:30px}
+footer li{margin-bottom:6px}
+.maplibregl-ctrl-group{background:var(--panel)!important}
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(1)}
+.maplibregl-ctrl-attrib{background:rgba(11,21,32,.8)!important;color:var(--muted)}
+.maplibregl-ctrl-attrib a{color:var(--muted)}
+.maplibregl-popup-content{background:var(--panel);color:var(--ink);border-radius:10px;padding:8px 10px;font-size:13px}
+.maplibregl-popup-tip{border-top-color:var(--panel)!important;border-bottom-color:var(--panel)!important}
+@media (max-width:980px){.g3,.g4{grid-template-columns:1fr 1fr}.impact{grid-template-columns:repeat(3,1fr)}footer .cols{grid-template-columns:1fr}}
+@media (max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}.impact{grid-template-columns:1fr 1fr}.intro{right:20px;max-width:none}.intro p,.stats{display:none}.legend{display:none}.journey{display:none}dialog .db{grid-template-columns:1fr}.f .two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><path d="M2 27 L12 9 L17 17 L21 12 L30 27 Z" fill="#7fd8f0"/><path d="M12 9 L15 14 L12.8 13 L10.4 15.6 Z M21 12 L23.5 16 L21.6 15.2 L19.8 16.6 Z" fill="#0b1520"/></svg>GLACIER GUARDIAN</div>
+  <nav class="journey" id="journey"></nav>
+  <div class="acct" id="acct"></div>
+  <div class="lang" role="group" aria-label="Language"><button type="button" id="l-ru">RU</button><button type="button" id="l-en">EN</button></div>
+</div></header>
+
+<div class="stage" id="see">
+  <div id="map" aria-label="3D map of Kyrgyzstan glaciers"></div>
+  <div class="overlay intro">
+    <h1 data-t="h1"></h1>
+    <p data-t="introP"></p>
+    <div class="stats" id="stats"></div>
+    <a class="btn primary" href="#detective" data-t="heroCta" style="margin-top:14px"></a>
+  </div>
+  <div class="overlay controls">
+    <div class="row" role="group" aria-label="Basemap">
+      <button type="button" class="btn small" id="bm-land"></button>
+      <button type="button" class="btn small" id="bm-relief"></button>
+      <button type="button" class="btn small" id="bm-3d"></button>
+    </div>
+    <div class="row"><label for="minarea"><span data-t="minArea"></span> <b class="mono" id="minareaV"></b></label><input type="range" id="minarea" min="0" max="10" step="0.1" value="0.5"></div>
+    <div class="search"><input id="q" type="search" autocomplete="off"><ul id="qres" role="listbox"></ul></div>
+  </div>
+  <div class="overlay legend" id="legend"></div>
+  <div class="overlay pickhint" id="pickhint"></div>
+  <aside class="panel" id="panel" aria-live="polite"></aside>
+</div>
+
+<main>
+  <section class="block" id="detective"><div class="wrap">
+    <div class="kicker"><span data-t="kd"></span></div>
+    <h2 data-t="d_h"></h2>
+    <p class="lead" data-t="d_lead"></p>
+    <div class="demos" id="dDemos"></div>
+    <div class="dnarr" id="dNarr" hidden></div>
+    <div class="grid g3 dq">
+      <div class="card"><h3 data-t="d_q1"></h3><div class="chips" id="dRegion"></div></div>
+      <div class="card"><h3 data-t="d_q2"></h3><div class="chips" id="dVar"></div><p class="def" id="dDef"></p></div>
+      <div class="card"><h3 data-t="d_q3"></h3><div class="chips" id="dSeason"></div><p class="def" data-t="d_seasonNote"></p></div>
+    </div>
+    <div class="grid dres">
+      <div class="card" id="dChart"></div>
+      <div class="card" id="dVerdict"></div>
+    </div>
+    <div class="card" id="dCompare" style="margin-top:16px"></div>
+  </div></section>
+
+  <section class="block" id="understand"><div class="wrap">
+    <div class="kicker"><span data-t="k2"></span></div>
+    <h2 data-t="u_h"></h2>
+    <p class="lead" data-t="u_lead"></p>
+    <div class="grid g2" id="whyCards"></div>
+    <h3 style="margin:36px 0 12px;font-size:18px" data-t="famous"></h3>
+    <div class="grid g4" id="famous"></div>
+  </div></section>
+
+  <section class="block" id="future"><div class="wrap">
+    <div class="kicker"><span data-t="k3"></span></div>
+    <h2 data-t="f_h"></h2>
+    <p class="lead" data-t="f_lead"></p>
+    <div class="grid g2">
+      <div class="card accent" id="histCard"></div>
+      <div class="card" id="scenCard"></div>
+    </div>
+  </div></section>
+
+  <section class="block" id="help"><div class="wrap">
+    <div class="kicker"><span data-t="k4"></span></div>
+    <h2 data-t="h_h"></h2>
+    <p class="lead" data-t="h_lead"></p>
+    <div class="grid g3" id="actions"></div>
+  </div></section>
+
+  <section class="block" id="science"><div class="wrap">
+    <div class="kicker"><span data-t="k5"></span></div>
+    <h2 data-t="s_h"></h2>
+    <p class="lead" data-t="s_lead"></p>
+    <div class="demo" data-t="demo"></div>
+    <div class="grid g2">
+      <div class="card"><h3 data-t="s_form"></h3><form class="f" id="obsForm"></form></div>
+      <div class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><h3 style="margin:0" data-t="s_list"></h3><span class="row" style="display:flex;gap:6px"><button type="button" class="btn small" id="exportBtn"></button><label class="btn small" for="importFile"><span data-t="import"></span><input type="file" id="importFile" accept="application/json" hidden></label></span></div><div class="list" id="obsList"></div></div>
+    </div>
+  </div></section>
+
+  <section class="block" id="community"><div class="wrap">
+    <div class="kicker"><span data-t="k6"></span></div>
+    <h2 data-t="c_h"></h2>
+    <p class="lead" data-t="c_lead"></p>
+    <div class="grid g2">
+      <div class="card"><h3 data-t="c_form"></h3><form class="f" id="iniForm"></form></div>
+      <div class="card"><h3 data-t="c_list"></h3><div class="list" id="iniList"></div></div>
+    </div>
+  </div></section>
+
+  <section class="block" id="impact"><div class="wrap">
+    <div class="kicker"><span data-t="k7"></span></div>
+    <h2 data-t="i_h"></h2>
+    <p class="lead" data-t="i_lead"></p>
+    <div class="impact" id="impactGrid"></div>
+    <div class="card" style="margin-top:16px"><h3 data-t="myGl"></h3><div class="list" id="adoptList"></div></div>
+  </div></section>
+</main>
+
+<footer><div class="wrap cols">
+  <div><p data-t="foot1"></p><p data-t="foot2"></p></div>
+  <div><b data-t="srcT"></b><ul id="sources" style="padding-left:18px;margin-top:8px"></ul></div>
+</div></footer>
+
+<dialog id="auth" style="width:min(420px,94vw)"><div class="dh"><span class="tabs" id="authTabs"></span><button type="button" class="btn small" id="authX">✕</button></div><form class="f" id="authForm"></form></dialog>
+<dialog id="cmp"><div class="dh"><b id="cmpT"></b><button type="button" class="btn small" id="cmpX">✕</button></div><div class="db" id="cmpB"></div></dialog>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="data.js?v=3"></script>
+<script src="trends.js?v=3"></script>
+<script src="stats.js?v=3"></script>
+<script src="i18n.js?v=3"></script>
+<script src="app.js?v=3"></script>
+</body>
+</html>
