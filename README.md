@@ -29,17 +29,35 @@ All data comes from NASA Earthdata. The interface is in Russian and English (RU 
 - **Internet connection.** The map library and NASA satellite tiles load from the web.
 - *(Optional)* **Node.js**, only to run the statistics tests.
 
-### Start in 3 steps
+### Copy, paste, run
+
+Paste the whole block into a terminal. It downloads the project, creates a clean Python environment, installs the requirements and starts the site.
+
+**macOS / Linux**
 
 ```bash
 git clone https://github.com/yaxaxaw/glacier-guardian.git
 cd glacier-guardian
-python3 server.py
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python server.py
 ```
 
-On Windows use `py server.py` instead of `python3 server.py`.
+**Windows (PowerShell or Command Prompt)**
+
+```powershell
+git clone https://github.com/yaxaxaw/glacier-guardian.git
+cd glacier-guardian
+py -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python server.py
+```
 
 The terminal prints `Glacier Guardian: http://localhost:8000`. Open **http://localhost:8000** in your browser. That's it: the full site, including sign-up, sign-in and photo uploads, now works on your computer.
+
+The site needs no third-party packages, so the install step finishes in a second ([requirements.txt](requirements.txt) explains why). Next time, start it with the last line only: `.venv/bin/python server.py` (Windows: `.venv\Scripts\python server.py`).
+
+No `git`? Download the ZIP from GitHub (**Code → Download ZIP**), unpack it, open a terminal in that folder and run the last three lines.
 
 To stop the server, press **Ctrl + C** in the terminal.
 
@@ -123,7 +141,7 @@ Both scripts need a free [Earthdata login](https://urs.earthdata.nasa.gov/users/
      - `nsidc0770_13.rgi60.CentralAsia.zip` (RGI 6.0)
      - `R13_glac_mass_annual_50sets_2000_2100-ssp126.nc`, `-ssp245.nc`, `-ssp585.nc`, `R13_glac_mass_annual_mad_50sets_2000_2100-ssp245.nc` (HMA2_GGP)
      - optionally the GLIMS `glims_db_north` zip, renamed to `glims_north.zip`
-  2. Run `pip install numpy netCDF4 pyshp`, then `python3 build_data.py <folder>`.
+  2. Install the exact package versions the data was built with: `python -m pip install -r requirements-data.txt` (numpy 2.0.2, netCDF4 1.7.2, cftime 1.6.4.post1, pyshp 3.1.8; tested on Python 3.9). Then run `python3 build_data.py <folder>`.
 
 ---
 
@@ -142,6 +160,8 @@ Both scripts need a free [Earthdata login](https://urs.earthdata.nasa.gov/users/
 - `stats.js`: Sen's slope, Mann–Kendall, regression with t-test; `stats.test.js` checks them
 - `i18n.js`: Russian and English text, list of sources
 - `server.py`: serves the site and the account API
+- `requirements.txt`: packages to run the site (none, standard library only)
+- `requirements-data.txt`: pinned packages for the data scripts
 - `trends.js`: MERRA-2 series per region, made by `fetch_trends.py`
 - `data.js`: 7,447 glaciers, made by `build_data.py`
 - `assets/mountains.webp`: background photo

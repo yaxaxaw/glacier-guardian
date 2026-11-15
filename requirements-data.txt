@@ -1,0 +1,12 @@
+# Glacier Guardian: packages for rebuilding the NASA data
+#   build_data.py   -> data.js   (RGI 6.0, GLIMS, PyGEM-OGGM)
+#   fetch_trends.py -> trends.js (MERRA-2)
+# Not needed to run the site.
+#
+# Exact versions the data in this repository was built with (Python 3.9.6).
+# Install: python -m pip install -r requirements-data.txt
+numpy==2.0.2
+netCDF4==1.7.2
+cftime==1.6.4.post1
+certifi==2026.10.23
+pyshp==3.1.8

@@ -1,0 +1,7 @@
+# Glacier Guardian: packages needed to RUN the site (python server.py)
+#
+# None. server.py uses only the Python standard library (Python 3.7+):
+# http.server, sqlite3, hashlib, json, secrets.
+# This file exists so the standard `pip install -r requirements.txt` step works.
+#
+# To rebuild the NASA data (build_data.py, fetch_trends.py), see requirements-data.txt.
