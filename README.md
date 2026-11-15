@@ -83,6 +83,33 @@ The tests check every statistical function against textbook values. They print `
 
 ---
 
+## Deploy for free on PythonAnywhere (full site with accounts)
+
+`server.py` is a standard WSGI app, so it runs on PythonAnywhere's free plan, which keeps the database and photos on a persistent disk. Replace `glacierguardian` below with your PythonAnywhere username.
+
+1. **Get the code.** Open **Consoles → Bash** and run:
+   ```bash
+   git clone https://github.com/yaxaxaw/glacier-guardian.git
+   ```
+2. **Create the web app.** Go to **Web → Add a new web app → Next → Manual configuration** (not Flask or Django) → choose the newest Python → **Next**.
+3. **Point it at the code.** On the **Web** tab, in the **Code** section, set both **Source code** and **Working directory** to `/home/glacierguardian/glacier-guardian`.
+4. **Connect the app.** In the same section, click the **WSGI configuration file** link (`/var/www/glacierguardian_pythonanywhere_com_wsgi.py`). Delete everything in it, paste these 3 lines and click **Save**:
+   ```python
+   import sys
+   sys.path.insert(0, "/home/glacierguardian/glacier-guardian")
+   from server import application
+   ```
+5. **Turn on HTTPS.** On the **Web** tab, in **Security**, switch **Force HTTPS** on.
+6. **Start it.** Click the green **Reload** button at the top of the **Web** tab and open `https://glacierguardian.pythonanywhere.com`.
+
+No `pip install` is needed. The database (`server_data/`) is created automatically on the first start.
+
+- **Update after a new commit:** `cd ~/glacier-guardian && git pull` in a Bash console, then **Reload** on the Web tab.
+- **Keep it running:** free web apps stop after one month. Once a month, click **"Run until 1 month from today"** on the Web tab. The data is kept.
+- **If the page shows an error:** open the **error log** link on the Web tab; the last lines name the problem.
+
+---
+
 ## What it does
 
 ### Trend Detective (the core of the challenge)
@@ -159,7 +186,7 @@ Both scripts need a free [Earthdata login](https://urs.earthdata.nasa.gov/users/
 - `app.js`: map, glacier panel, Trend Detective, accounts, observations
 - `stats.js`: Sen's slope, Mann–Kendall, regression with t-test; `stats.test.js` checks them
 - `i18n.js`: Russian and English text, list of sources
-- `server.py`: serves the site and the account API
+- `server.py`: the site and the account API as one WSGI app (local run and PythonAnywhere)
 - `requirements.txt`: packages to run the site (none, standard library only)
 - `requirements-data.txt`: pinned packages for the data scripts
 - `trends.js`: MERRA-2 series per region, made by `fetch_trends.py`
