@@ -1,0 +1,8 @@
+# user accounts, passwords and photos: never publish
+server_data/
+
+__pycache__/
+*.pyc
+.DS_Store
+.claude/
+.netrc
