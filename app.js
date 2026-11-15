@@ -401,6 +401,7 @@ function renderObsForm() {
     e.preventDefault();
     const lat = parseFloat(f.elements.lat.value), lon = parseFloat(f.elements.lon.value);
     if (!isFinite(lat) || !isFinite(lon)) { document.getElementById("obsMsg").textContent = t("o_err"); return; }
+    if (!SERVER) { document.getElementById("obsMsg").textContent = t("a_static"); return; }
     if (!USER) { openAuth("login", t("a_need")); return; }
     const id = "o" + Date.now().toString(36); const n = nearest(lat, lon);
     const file = f.elements.photo.files[0]; let hasPhoto = false;
@@ -498,7 +499,7 @@ async function doImport(file) {
 function alertMsg(m) { const el = document.getElementById("obsMsg"); if (el) { el.textContent = m; setTimeout(() => { el.textContent = ""; }, 5000); } }
 
 /* ---------- accounts (server.py) ---------- */
-let USER = null;
+let USER = null, SERVER = false; // SERVER: server.py answers (false on static hosting like GitHub Pages)
 // JSON call to our server; returns the parsed reply, or null on any failure (error code kept in api.err)
 async function api(method, path, body) {
   try {
@@ -514,7 +515,7 @@ async function syncObs() {
   save(); renderObsList(); renderImpact(); refreshObsLayer();
 }
 function renderAcct() {
-  const el = document.getElementById("acct");
+  const el = document.getElementById("acct"); el.hidden = !SERVER; if (!SERVER) return;
   el.innerHTML = USER ? `<button type="button" class="btn small" id="acctBtn" title="${esc(USER.email)}">👤 ${esc(USER.name)}</button>` : `<button type="button" class="btn small primary" id="acctBtn">${t("a_login")}</button>`;
   document.getElementById("acctBtn").onclick = () => USER ? openAuth("me") : openAuth("login");
 }
@@ -560,7 +561,7 @@ function boot() {
   document.getElementById("exportBtn").onclick = doExport;
   document.getElementById("importFile").onchange = e => { if (e.target.files[0]) doImport(e.target.files[0]); e.target.value = ""; };
   document.getElementById("authX").onclick = () => document.getElementById("auth").close();
-  api("GET", "/api/me").then(u => { if (u && u.email) { USER = u; renderAcct(); syncObs(); } });
+  api("GET", "/api/me").then(u => { if (!u) return; SERVER = true; if (u.email) { USER = u; syncObs(); } renderAcct(); });
   document.getElementById("cmpX").onclick = () => document.getElementById("cmp").close();
   document.addEventListener("keydown", e => { if (e.key === "Escape" && pickMode) togglePick(false); });
   const h = location.hash.match(/^#g-(\d{5})$/); if (h && byId.has(h[1])) { const go = () => openGlacier(h[1]); if (!map || map.isStyleLoaded()) go(); else map.once("load", go); } // setFeatureState throws before style load
